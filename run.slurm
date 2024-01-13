@@ -1,18 +1,13 @@
 #!/bin/bash
-
-#SBATCH --job-name=33
-#SBATCH --mail-user=zihan16@uw.edu
-
-#SBATCH --account=amath
-#SBATCH --partition=gpu-rtx6k
-#SBATCH --nodes=1            
-#SBATCH --ntasks-per-node=1           
-#SBATCH --mem=8G            
-#SBATCH --time=03-12:00:00      
-#SBATCH --gpus=1
+#SBATCH --job-name=my_cpp_job             # Job name
+#SBATCH --nodes=1                         # Number of nodes
+#SBATCH --ntasks-per-node=1               # Number of tasks (processes) per node
+#SBATCH --cpus-per-task=1                 # Number of CPU cores per task (process)
+#SBATCH --mem=900G                        # Memory per node (e.g., 4 GB)
+#SBATCH --time=144:00:00                   # Time limit (hh:mm:ss)
 
 #SBATCH --export=all
-#SBATCH --output=spatial_opt33.txt
-#SBATCH --error=spatial_err33.txt
+#SBATCH --output=opt.txt
+#SBATCH --error=err.txt
 
 python -u toy.py
