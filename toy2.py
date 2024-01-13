@@ -10,10 +10,10 @@ import os
 
 repeat = 10
 neuron_num = 100
-num_points_per_dim = 100
+num_points_per_dim = 1000
 bound = [0, 6]
 shift = 0.1
-std = 0.1 # keep it fixed now
+std = 0.01 # keep it fixed now
 long_std = 0.5
 mean_range = [2.5, 3.5]
 diag_cov = np.diag([std, std, std])
@@ -86,6 +86,6 @@ mean_kn = np.mean(np.array(kn_lst))
 
 plt.plot(comp, the_err, label=f"mean_kn={mean_kn}")
 plt.legend()
-plt.savefig(f"{defpath}/toy2_test_{neuron_num}_repeat_{repeat}_std_{std}_longstd_{long_std}.png")
+plt.savefig(f"{defpath}/toy2_test_neuron_{neuron_num}_repeat_{repeat}_std_{std}_longstd_{long_std}.png")
 
-delete_pycache(os.getcwd())
+# delete_pycache(os.getcwd())

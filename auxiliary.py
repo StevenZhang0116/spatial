@@ -1,5 +1,4 @@
 import shutil
-import os
 
 def delete_pycache(directory):
     for root, dirs, files in os.walk(directory):

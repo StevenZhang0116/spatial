@@ -141,3 +141,5 @@ def generate_equal_length_stick_structure(mean_range, short_std, long_std):
     rotated_cov = random_rotation @ base_cov @ random_rotation.T
 
     return multivariate_normal(mean_range, rotated_cov)
+
+    
