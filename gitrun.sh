@@ -13,7 +13,8 @@ COMMIT_MESSAGE="$1"
 # Replace '/path/to/your/repo' with the path to your git repository
 
 # Adding all files except .slurm and .txt files
-find . -type f ! -name '*.slurm' ! -name '*.txt' -exec git add {} +
+# Using 'git add' with a specific pattern
+git add -- ':!*.slurm' ':!*.txt'
 
 # Committing the changes
 git commit -m "$COMMIT_MESSAGE"
@@ -22,4 +23,3 @@ git commit -m "$COMMIT_MESSAGE"
 git push origin main
 
 # End of the script
-
