@@ -1,0 +1,27 @@
+2024-01-31 17:17:16.805644: I tensorflow/core/util/port.cc:110] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2024-01-31 17:17:18.118876: I tensorflow/tsl/cuda/cudart_stub.cc:28] Could not find cuda drivers on your machine, GPU will not be used.
+2024-01-31 17:17:20.412513: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-01-31 17:17:43.925943: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+Traceback (most recent call last):
+  File "toy.py", line 63, in <module>
+    nx.draw(G,pos=grids)
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/networkx/drawing/nx_pylab.py", line 121, in draw
+    draw_networkx(G, pos=pos, ax=ax, **kwds)
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/networkx/drawing/nx_pylab.py", line 304, in draw_networkx
+    draw_networkx_edges(G, pos, arrows=arrows, **edge_kwds)
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/networkx/drawing/nx_pylab.py", line 896, in draw_networkx_edges
+    edge_viz_obj = _draw_networkx_edges_line_collection()
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/networkx/drawing/nx_pylab.py", line 738, in _draw_networkx_edges_line_collection
+    edge_collection = mpl.collections.LineCollection(
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/matplotlib/collections.py", line 1412, in __init__
+    self.set_segments(segments)
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/matplotlib/collections.py", line 1418, in set_segments
+    self._paths = [mpath.Path(seg) if isinstance(seg, np.ma.MaskedArray)
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/matplotlib/collections.py", line 1419, in <listcomp>
+    else mpath.Path(np.asarray(seg, float))
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/matplotlib/path.py", line 130, in __init__
+    _api.check_shape((None, 2), vertices=vertices)
+  File "/gscratch/deepthought/zihan/miniconda3/envs/playground/lib/python3.8/site-packages/matplotlib/_api/__init__.py", line 168, in check_shape
+    raise ValueError(
+ValueError: 'vertices' must be 2D with shape (M, 2). Your input has shape (2, 3).

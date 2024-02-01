@@ -1,26 +1,24 @@
-from toy_data import *
-from toy_analysis import *
-from auxiliary import *
+from par import * # multitherading module
 
 import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import concurrent.futures
-import os
+from sklearn.linear_model import LinearRegression
+from scipy import stats
 
-repeat = 10
+repeat = 100
 neuron_num = 100
-num_points_per_dim = 1000
-bound = [0, 6]
-shift = 0.1
-std = 0.01 # keep it fixed now
-long_std = 0.5
-mean_range = [2.5, 3.5]
-diag_cov = np.diag([std, std, std])
+num_points_per_dim = 200
+bound = [0, 10]
+step = (bound[1] - bound[0])/num_points_per_dim
+shift = 0
+short_std = 0.05
+# long_std_lst = [i for i in np.arange(0.1, 0.5, 0.05)]
+long_std_lst = [0.4]
 
-defpath = "images"
+# specify the total deviation of mean range
+# divlst = [i for i in np.arange(0.05, 0.5, 0.05)]
+divlst = [0.5]
+ubb = 2
 
-# little redundant but for clarity
 x = np.linspace(bound[0], bound[1], num_points_per_dim)
 y = np.linspace(bound[0], bound[1], num_points_per_dim)
 z = np.linspace(bound[0], bound[1], num_points_per_dim)
@@ -28,65 +26,95 @@ z = np.linspace(bound[0], bound[1], num_points_per_dim)
 X, Y, Z = np.meshgrid(x, y, z)
 sample_space = np.vstack([X.ravel(), Y.ravel(), Z.ravel()]).T
 
-plt.figure(figsize=(6,6))
+# choice of metric being used
+metric_choice = 0 
 
-err_lst = []
-kn_lst = []
+# number of motif power/cumulants that need to be calculated
+nnnn = 10
 
+# how to calculate the overlap volume
+closed = 0
 
-for _ in range(repeat):
-    dend_pdf, axon_pdf = [], []
+defpath = "images"
 
-    for _ in range(neuron_num):
-        dend_mean = np.random.uniform(mean_range[0], mean_range[1], 3)
+methods = ['Isomap'] # after check, only consider isomap at this moment
 
-        # dend_dist = multivariate_normal(dend_mean, diag_cov)
-        dend_dist = generate_equal_length_stick_structure(dend_mean, std, long_std)
+bind_prob = []
 
-        opt_shift = np.random.uniform(-shift, shift, 3)
-        axon_mean = np.add(dend_mean, opt_shift)
+for long_std in long_std_lst: 
+    for div in divlst: 
+        # secondary parameter calculation
+        meanpt = (bound[0]+bound[1])/2
+        mean_range = [meanpt-div, meanpt+div]
 
-        # axon_dist = multivariate_normal(axon_mean, diag_cov)
-        axon_dist = generate_equal_length_stick_structure(axon_mean, std, long_std)
+        # data stack
+        all_err = np.zeros((repeat, ubb - 1, len(methods)))
+        all_kn = np.zeros((repeat, len(methods)))
+        all_kappa = np.zeros((repeat, nnnn))
+        all_kappa_cy = np.zeros((repeat, nnnn))
+        bind_pp = np.zeros((repeat, 1))
+        eigenvals = []
 
-        # Monte Carlo Integration
-        pdf1 = dend_dist.pdf(sample_space)
-        dend_pdf.append(pdf1)
-        pdf2 = axon_dist.pdf(sample_space)
-        axon_pdf.append(pdf2)
+        for repeat_ind in range(repeat):
+            jjj, err, kn, kappa1, kappa_cy, pp1, eigen = process_iteration(repeat_ind, repeat, neuron_num, num_points_per_dim, bound, shift, short_std, long_std, mean_range, step, sample_space, nnnn, defpath, closed, metric_choice)
+            all_err[jjj, :, 0] = err["isomap"]
+            all_kn[jjj, 0] = kn["isomap"]
+            all_kappa[jjj, :] = kappa1
+            all_kappa_cy[jjj, :] = kappa_cy
+            bind_pp[jjj, 0] = pp1
+            eigenvals.append(eigen)
 
-    W = np.zeros([neuron_num, neuron_num])
+        eigenvals = np.array(eigenvals)
 
-    for i in range(neuron_num):
-        for j in range(neuron_num):
-            pdf1, pdf2 = dend_pdf[i], axon_pdf[j]
-            product_of_densities = pdf1 * pdf2
+        # plt.figure(figsize=(20, 10))  
 
-            average_product_density = np.mean(product_of_densities)
-            sample_space_volume = (bound[1] - bound[0]) ** 3  
-            
-            integral_value = average_product_density * sample_space_volume
-            W[i][j] = integral_value
+        # for i, method in enumerate(methods):
+        #     the_err = np.mean(all_err[:, :, i], axis=0)
+        #     mean_kn = np.mean(all_kn[:, i], axis=0)
+        #     X_label = [i for i in range(len(the_err))]
+        #     plt.plot(X_label, the_err, linewidth=3, markersize=12, label=f"{method}={mean_kn}")
+        #     plt.legend()
 
-    C = np.cov(W)
-    J = np.ones([neuron_num, neuron_num])
-    D = J - C
+        # plt.savefig(f"{defpath}/toy_method_compare_neuron_{neuron_num}_repeat_{repeat}_std_{short_std}_longstd_{long_std}_mean_{mean_range[0]}_{mean_range[1]}.png")
 
-    comp, err = isomap_test(D, 8)
-    print(err)
-    kn = KneeLocator(comp, err, curve='convex', direction='decreasing')
-    print(kn.knee)
+        kappa1_mean = np.mean(np.array(all_kappa), axis=0)
+        kappacy_mean = np.mean(np.array(all_kappa_cy), axis=0)
 
-    err_lst.append(err)
-    kn_lst.append(kn.knee)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.hist(kappa1_mean, density=False)
+        ax.set_title(f"Kappa")
+        fig.savefig(f"{defpath}/kappa_{neuron_num}_{long_std}_{short_std}.png")
 
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.hist(kappacy_mean, density=False)
+        ax.set_title(f"Kappa Cycle")
+        fig.savefig(f"{defpath}/kappacy_{neuron_num}_{mean_range[0]}_{mean_range[1]}_longstd_{long_std}_std_{short_std}.png")
 
-err_lst = np.array(err_lst)
-the_err = np.mean(err_lst, axis=0)
-mean_kn = np.mean(np.array(kn_lst))
+        bind_prob.append(np.mean(bind_pp))
 
-plt.plot(comp, the_err, label=f"mean_kn={mean_kn}")
-plt.legend()
-plt.savefig(f"{defpath}/toy2_test_neuron_{neuron_num}_repeat_{repeat}_std_{std}_longstd_{long_std}.png")
+plt.figure()
+mean_ev = np.mean(eigenvals, axis=0)
+skewness = stats.skew(mean_ev)
+plt.hist(mean_ev, bins=50)
+plt.title(f"Average Eigenvalue Spectrum: skewness={round(skewness,3)}; prob={round(np.mean(bind_prob),3)}")
+plt.savefig(f"./spec_image/{neuron_num}_{mean_range[0]}_{mean_range[1]}_longstd_{long_std}_std_{short_std}.png")
 
-# delete_pycache(os.getcwd())
+# model = LinearRegression()
+# bind_prob = np.array(bind_prob).reshape(-1, 1)
+# divlst = np.array(divlst).reshape(-1,1)
+# model.fit(divlst, bind_prob)
+
+# def predict_x_given_y(y, model):
+#     slope = model.coef_[0]
+#     intercept = model.intercept_
+#     return (y - intercept) / slope
+
+# predicted_x = predict_x_given_y(0.379636, model)
+
+# plt.figure()
+# plt.plot(divlst, bind_prob)
+# plt.plot(divlst, model.predict(divlst), color='b', linestyle='-.')
+# plt.axhline(y = 0.379636, color='r', linestyle='-') 
+# print(bind_prob)
+# plt.title(f"Intersection point: x={predicted_x}")
+# plt.savefig("testimg_div.png")
