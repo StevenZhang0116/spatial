@@ -165,6 +165,7 @@ def generate_graph_from_adj_matrix(adj_matrix, positions=None):
     if not isinstance(adj_matrix, np.ndarray):
         adj_matrix = np.array(adj_matrix)
 
+    # ADD NODE BEFORE ADD EDGES
     if positions is not None: 
         for node, pos in positions.items():
             G.add_node(node, pos=pos)
@@ -264,7 +265,18 @@ def count_chains_of_any_length(graph, chain_length):
                         chain_count += 1
     return chain_count // 2
 
-def flat_plot():
+def flex_plot(fig, G, pos):
     """
-    Similar 
+    Similar to nx.draw() but accept the position information to be 3D (instead of maximum 2D)
+    Have plot configuration, including plt.figrue(), plt.show() etc., outside the function. 
     """
+    ax = fig.add_subplot(111, projection='3d')
+    xs, ys, zs = zip(*[pos[node] for node in G.nodes()])
+    ax.scatter(xs, ys, zs)
+
+    for edge in G.edges():
+        x_coords, y_coords, z_coords = zip(*[pos[node] for node in edge])
+        ax.plot(x_coords, y_coords, z_coords, "b-") 
+
+    return fig 
+

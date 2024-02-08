@@ -5,9 +5,9 @@ from motif import *
 from numpy.linalg import matrix_power
 import networkx as nx
 
-num_stick = 2
+num_stick = 20
 length_range = [0.0]
-repeat = 1
+repeat = 100
 up_dim = 10
 bound = 1
 
@@ -35,16 +35,11 @@ for thelength in length_range:
 
     for iiii in range(repeat):
         # generate random points in the space
+        # dimensionality of the toy model
+        dim = 2
 
-        # points = generate_random_sticks(num_stick, length, x_range, y_range, z_range)
-        # pair_distance = stick_pairwise_distances(points)
-        # W = 1 / pair_distance 
-        # np.fill_diagonal(W, 0)
-
-        dim = 3
-
-        grids = generate_grid_points(num_stick, x_range, y_range, z_range)
-        W = generate_adjacency_matrix_uniform(num_stick, 1)
+        grids = generate_grid_points(num_stick, x_range, y_range)
+        W = generate_adjacency_matrix_uniform(num_stick, dim)
         G = generate_graph_from_adj_matrix(W, grids)
         totpt = num_stick ** dim
         num_conn = np.sum(W) / 2
@@ -59,8 +54,9 @@ for thelength in length_range:
         # W = prob_bind(standW, 1)
 
         if iiii+1 == repeat:
-            plt.figure()
-            nx.draw(G,pos=grids)
+            fig = plt.figure()
+            # fig = flex_plot(fig, G, pos=grids)
+            nx.draw(G, pos=grids)
             plt.savefig(f"{savepath}{dim}D_graph_un_{num_stick}_{repeat}_run={iiii}.png")
 
             plt.figure()
@@ -156,7 +152,7 @@ if plottt == 1:
     ax.set_title(f"Kappa; Order: {nnnn}")
     ax.legend(loc='best')  # Explicitly using ax.legend()
     ax.set_yscale('log')  # Set the y-axis to a logarithmic scale
-    fig.savefig(f"{savepath}1D_snn_unif_er_kappa_{num_stick}_{repeat}.png")
+    fig.savefig(f"{savepath}{dim}D_snn_unif_er_kappa_{num_stick}_{repeat}.png")
 
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.plot([i for i in range(1, len(kappa1_mean))], np.abs([kappa1_mean[i]/kappa1_mean[i+1] for i in range(0, len(kappa1_mean)-1)]), marker='o', linestyle='-', label="un")
@@ -164,14 +160,14 @@ if plottt == 1:
     ax.set_title(f"Kappa; Order: {nnnn}")
     ax.legend(loc='best')  # Explicitly using ax.legend()
     ax.set_yscale('log')  # Set the y-axis to a logarithmic scale
-    fig.savefig(f"{savepath}1D_snn_unif_er_kappa_decay_{num_stick}_{repeat}.png")
+    fig.savefig(f"{savepath}{dim}D_snn_unif_er_kappa_decay_{num_stick}_{repeat}.png")
 
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.plot([i for i in range(1, len(kappacy_mean)+1)], kappacy_mean, marker='o', linestyle='-', label="un")
     ax.plot([i for i in range(1, len(kappacy_er_mean)+1)], kappacy_er_mean, marker='o', linestyle='-', label="er")
     ax.set_title(f"Kappa_cy; Order: {nnnn}")
     ax.legend(loc='best')  
-    fig.savefig(f"{savepath}1D_snn_unif_er_kappacy_{num_stick}_{repeat}.png")
+    fig.savefig(f"{savepath}{dim}D_snn_unif_er_kappacy_{num_stick}_{repeat}.png")
 
     # fig, ax = plt.subplots(figsize=(8, 6))
     # ax.hist(kappa1_er_mean, density=False)
@@ -191,4 +187,4 @@ if plottt == 1:
     ax.set_ylabel("Count")
     ax.legend(loc='best')  
     ax.set_yscale('log')  # Set the y-axis to a logarithmic scale
-    fig.savefig(f"{savepath}1D_snn_unif_er_{num_stick}_{repeat}.png")
+    fig.savefig(f"{savepath}{dim}D_snn_unif_er_{num_stick}_{repeat}.png")

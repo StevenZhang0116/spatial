@@ -23,7 +23,14 @@ def isomap_test(X, grange):
         X_transformed = embedding.fit_transform(X)
         dim.append(n_comp)
         re_err.append(embedding.reconstruction_error())
-    return dim, re_err
+
+    # select the knee locator
+    kn_isomap = KneeLocator(dim, re_err, curve='convex', direction='decreasing').knee
+    # use that number of PC to embed
+    embedding = Isomap(n_components=kn_isomap)
+    X_transformed = embedding.fit_transform(X)
+
+    return dim, re_err, X_transformed, kn_isomap
 
 # umap analysis
 def umap_test(X, grange):
