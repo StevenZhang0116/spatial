@@ -7,6 +7,7 @@ import seaborn as sns
 import sys 
 sys.path.append("../")
 from analysis import *
+import csv
 
 def plot_single_neuron(soma, pre_loc=np.array([]), post_loc=np.array([])):
     """
@@ -71,8 +72,14 @@ def extract_neuron_synaptic_info(cell_id, flag, cell_table, synapse_table):
     
     # Prepare synaptic locations
     serve_as_loc = np.array([i for i in serve_as_loc])
-    serve_as_rela_loc = serve_as_loc - soma_loc
-    serve_as_rela_loc_norm = np.linalg.norm(serve_as_rela_loc, axis=1)
+
+    # it is possible, especially for postsynaptic location, that no synapse is found
+    if len(serve_as_loc) > 0:
+        serve_as_rela_loc = serve_as_loc - soma_loc
+        serve_as_rela_loc_norm = np.linalg.norm(serve_as_rela_loc, axis=1)
+    else:
+        serve_as_rela_loc = []
+        serve_as_rela_loc_norm = []
 
     return [soma_loc, neuron_type, serve_as_loc, serve_as_syn_size, serve_as_rela_loc_norm]
 
@@ -149,3 +156,94 @@ def plot_graph_3d(G):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
+
+def rotate_around_y_with_pivot(points, pivot, angle=None):
+    """
+    Rotate an N*3 ndarray around the y-axis and a pivot point.
+    """
+    if angle is None:
+        angle = np.random.uniform(0, 2 * np.pi)
+    
+    R_y = np.array([
+        [np.cos(angle), 0, np.sin(angle)],
+        [0, 1, 0],
+        [-np.sin(angle), 0, np.cos(angle)]
+    ])
+    
+    translated_points = points - pivot
+    rotated_points = np.dot(translated_points, R_y.T)  
+    rotated_translated_points = rotated_points + pivot
+
+    converted_array = np.array([[sub_array[0] for sub_array in row] for row in rotated_translated_points])
+    
+    return converted_array
+
+def generate_connection(cell_table, synapse_table, file_path):
+    """
+    Use synapse table to generate connectivity matrix between cells
+    """
+    all_neuron_ids = cell_table["pt_root_id"].unique()
+    num_neuron = len(all_neuron_ids)
+
+    W = np.zeros((num_neuron, num_neuron))
+    totalSyn = np.zeros((num_neuron, num_neuron))
+    synCount = np.zeros((num_neuron, num_neuron))
+
+    id_to_index = {neuron_id: index for index, neuron_id in enumerate(all_neuron_ids)}
+
+    for index, row in synapse_table.iterrows():
+        if row['pre_pt_root_id'] in id_to_index and row['post_pt_root_id'] in id_to_index:
+            i = id_to_index[row['pre_pt_root_id']]
+            j = id_to_index[row['post_pt_root_id']]
+            syn = row["size"]
+            if i != j:
+                W[i, j] = 1
+                totalSyn[i, j] += syn
+                synCount[i, j] += 1
+
+    plt.figure()
+    sns.heatmap(W)
+    plt.savefig("connectivity.png")
+
+    plt.figure()
+    sns.heatmap(totalSyn)
+    plt.savefig("synapse.png")
+    
+    all_neuron_ids = np.arange(1, W.shape[0] + 1) 
+
+    data = [
+        {'neuron1': all_neuron_ids[i], 'neuron2': all_neuron_ids[j], 'connectivity': W[i, j], 'total_synapse': totalSyn[i, j], 'syn_count': synCount[i, j]}
+        for i in range(W.shape[0]) for j in range(W.shape[1])
+    ]
+
+    conn_df = pd.DataFrame(data)
+    np.save('conn_info.npy', conn_df)
+
+    write_matrix_to_file(W, f"{file_path[:-4]}_complete.txt")
+
+    # check if any neuron is completely "detached" from the graph
+    rows_to_delete = np.where(~W.any(axis=1))[0]
+    cols_to_delete = np.where(~W.any(axis=0))[0]
+
+    indices_to_delete = np.intersect1d(rows_to_delete, cols_to_delete)
+
+    W = np.delete(W, indices_to_delete, axis=0)  
+    W = np.delete(W, indices_to_delete, axis=1)  
+
+    write_matrix_to_file(W, f"{file_path[:-4]}_modified.txt")
+
+
+def write_matrix_to_file(W, file_path):
+    with open(file_path, 'w', newline='') as file:
+        writer = csv.writer(file, delimiter=' ')
+        for i in range(W.shape[0]):
+            for j in range(W.shape[1]):
+                val = int(W[i,j])
+                if val != 0:
+                    writer.writerow([i, j])
+
+
+    
+    
+
+

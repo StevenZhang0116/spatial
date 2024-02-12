@@ -20,8 +20,6 @@ if __name__ == "__main__":
     ei_neuron_type_record = []
 
     for i in range(nn):
-        print(f"i: {i}")
-        cnt = 0
         for j in range(nn):
             cell_id1 = cells_index[i]
             cell_id2 = cells_index[j]
