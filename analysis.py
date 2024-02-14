@@ -26,6 +26,8 @@ def isomap_test(X, grange):
 
     # select the knee locator
     kn_isomap = KneeLocator(dim, re_err, curve='convex', direction='decreasing').knee
+    if kn_isomap == None:
+        kn_isomap = grange
     # use that number of PC to embed
     embedding = Isomap(n_components=kn_isomap)
     X_transformed = embedding.fit_transform(X)

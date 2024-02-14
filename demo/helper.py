@@ -8,6 +8,9 @@ import sys
 sys.path.append("../")
 from analysis import *
 import csv
+from scipy.io import savemat
+import time
+from itertools import product
 
 def plot_single_neuron(soma, pre_loc=np.array([]), post_loc=np.array([])):
     """
@@ -178,11 +181,21 @@ def rotate_around_y_with_pivot(points, pivot, angle=None):
     
     return converted_array
 
-def generate_connection(cell_table, synapse_table, file_path):
+def real_data_analysis(cell_table, synapse_table, file_path, folder_path="./syn_analysis/"):
     """
     Use synapse table to generate connectivity matrix between cells
+
+    Return: 
+    --- W_complete: raw connectivity matrix (binary)
     """
     all_neuron_ids = cell_table["pt_root_id"].unique()
+    cell_unique = cell_table["cell_type"].unique()
+
+    cell_tag = cell_table["cell_type"].tolist()
+    
+    inh_neuron = ['23P', '4P', '5P-IT', '5P-NP', '5P-PT', '6P']
+    ext_neuron = ['BC', 'MPC', 'MC', 'NGC']
+
     num_neuron = len(all_neuron_ids)
 
     W = np.zeros((num_neuron, num_neuron))
@@ -203,11 +216,11 @@ def generate_connection(cell_table, synapse_table, file_path):
 
     plt.figure()
     sns.heatmap(W)
-    plt.savefig("connectivity.png")
+    plt.savefig(f"{folder_path}connectivity.png")
 
     plt.figure()
     sns.heatmap(totalSyn)
-    plt.savefig("synapse.png")
+    plt.savefig(f"{folder_path}synapse.png")
     
     all_neuron_ids = np.arange(1, W.shape[0] + 1) 
 
@@ -217,23 +230,51 @@ def generate_connection(cell_table, synapse_table, file_path):
     ]
 
     conn_df = pd.DataFrame(data)
-    np.save('conn_info.npy', conn_df)
+    conn_df.to_pickle(f'{folder_path}syn_conn_info.pkl')
 
-    write_matrix_to_file(W, f"{file_path[:-4]}_complete.txt")
+    write_matrix_to_file(W, f"{folder_path}{file_path[:-4]}_complete.txt")
+
+    data_dict = {'W': W}
+    W_complete = W
+
+    savemat(f'{folder_path}{file_path[:-4]}_complete.mat', data_dict)
 
     # check if any neuron is completely "detached" from the graph
+    # IN-PLACE CHANGE [W]
+    W = detect_detach_neuron(W)
+    write_matrix_to_file(W, f"{folder_path}{file_path[:-4]}_modified.txt")
+
+    print(f"Num of neuron detached: {W_complete.shape[0] - W.shape[0]}")
+    print(f"Proportion of assymmetry: {np.sum(W != W.T)/(W.shape[0] * W.shape[1])}")
+
+    # use inbitory neuron (loop) as an example
+    indices_inh_neuron = [i for i, tag in enumerate(cell_tag) if tag in inh_neuron]
+    W_sliced = W[np.ix_(k_lst, k_lst)]
+
+
+    W_part = detect_detach_neuron(W_part_complete)
+
+    print(f"Num of neuron from {num1} to {num2} detached: {W_part_complete.shape[0] - W_part.shape[0]}")
+
+    write_matrix_to_file(W_part, f"{folder_path}{file_path[:-4]}_part_{num1}_{num2}.txt")
+
+    return W_complete
+
+def detect_detach_neuron(W):
+    """
+    """
     rows_to_delete = np.where(~W.any(axis=1))[0]
     cols_to_delete = np.where(~W.any(axis=0))[0]
 
     indices_to_delete = np.intersect1d(rows_to_delete, cols_to_delete)
 
     W = np.delete(W, indices_to_delete, axis=0)  
-    W = np.delete(W, indices_to_delete, axis=1)  
-
-    write_matrix_to_file(W, f"{file_path[:-4]}_modified.txt")
-
+    W = np.delete(W, indices_to_delete, axis=1) 
+    return W
 
 def write_matrix_to_file(W, file_path):
+    """
+    """
     with open(file_path, 'w', newline='') as file:
         writer = csv.writer(file, delimiter=' ')
         for i in range(W.shape[0]):
@@ -243,7 +284,33 @@ def write_matrix_to_file(W, file_path):
                     writer.writerow([i, j])
 
 
-    
-    
+def triangle_inequality_violation(W):
+    """
+    """
+    # plt.figure()
+    # elements = W.flatten()
+    # plt.hist(elements, bins=20, alpha=0.75, color='blue', edgecolor='black')
+    # plt.savefig("elements.png")
+
+    # plt.figure()
+    # eigenvalues = np.linalg.eigvals(W)
+    # plt.scatter(eigenvalues.real, eigenvalues.imag, s=50)
+    # plt.savefig("elements_spectrum.png")
+
+    variable_permutations = list(product(range(W.shape[0]), repeat=3))
+    violations = []
+
+    for perm in variable_permutations:
+        [i, j, k] = perm
+        conn1, conn2, conn3 = W[i,j], W[j,k], W[k, i]
+        if conn1 + conn2 < conn3:
+            # violation = (conn3 - (conn1 + conn2))/(conn1 + conn2)
+            violations.append(1)
+        else:
+            violations.append(0)
+
+    return np.mean(violations)
+
+
 
 
